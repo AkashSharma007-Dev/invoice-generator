@@ -1,0 +1,120 @@
+/* ============================================================
+   Example Travel & Tours — Statement (Ledger Account) paper
+   Structure copied 1:1 from "Statement Format Zambia.xlsx".
+
+   Loads AFTER invoice.css and reuses its letterhead component
+   (.hdr / .co-name / .co-line) so both documents leave the app
+   under one identity. Everything below is scoped to .st-paper,
+   so nothing here can ever reach the invoice.
+   ============================================================ */
+
+/* A4 PORTRAIT, not landscape: the ledger is six narrow columns, and the
+   source sheet prints upright. 186mm is the printable width at the 12mm
+   side margins used by the PDF export; 180 leaves a hairline of air. */
+.st-paper{
+  width:180mm;
+  font-size:8.5pt;
+  line-height:1.25;
+}
+
+/* The app window applies a global border-box reset; the print document does
+   not, because it loads only these stylesheets. Pagination here is decided by
+   measuring the preview, so the two have to lay out identically or a page
+   planned on screen would print a row short. Stating it on the paper itself
+   makes both contexts agree. */
+.st-paper,.st-paper *{box-sizing:border-box;}
+
+/* ---------- letterhead, scaled for the narrower page ---------- */
+/* The invoice sizes its header for 229mm of landscape paper. Dropping it
+   into 180mm unchanged pushes the address past the right edge, so every
+   dimension here is the same design at ~0.8 scale. */
+.st-paper .hdr-logo{width:168px;flex:0 0 168px;padding:5px 4px;}
+.st-paper .hdr-logo img{height:76px;}
+.st-paper .hdr-info{padding:6px 10px 6px 0;}
+.st-paper .co-name{font-size:17pt;}
+.st-paper .co-line{font-size:7.5pt;line-height:1.45;}
+
+/* ---------- party / title / period ---------- */
+/* Three stacked lines between the letterhead and the table, exactly as
+   rows 6-8 of the source: party name bold, the words "Ledger Account"
+   small underneath it, then the period in its own boxed strip. */
+.st-party{
+  font-size:11pt;font-weight:700;
+  padding:4px 8px 0;
+}
+.st-title{
+  font-size:8pt;
+  padding:0 8px 4px;
+}
+/* Three equal tracks rather than a flex row: the period stays dead centre on
+   the sheet whether or not a "Page 2 of 3" is sitting in the right-hand one. */
+.st-period{
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  padding:3px 8px;font-size:9pt;
+}
+.st-period .c{grid-column:2;text-align:center;}
+.st-period .r{grid-column:3;font-weight:700;white-space:nowrap;text-align:right;}
+
+/* ---------- ledger table ---------- */
+table.st-tbl{width:100%;border-collapse:collapse;table-layout:fixed;}
+table.st-tbl th,table.st-tbl td{
+  border:1px solid var(--rule);
+  padding:2px 5px;
+  font-size:8.5pt;font-weight:400;
+  vertical-align:top;
+  white-space:normal;overflow-wrap:break-word;
+}
+/* The source header row carries no fill — this is a Tally print, not the
+   invoice's navy band. Bold is the one addition: at 8pt an unbolded
+   heading is indistinguishable from the data directly under it. */
+table.st-tbl thead th{
+  font-size:8pt;font-weight:700;
+  text-align:center;vertical-align:middle;
+  padding:4px 5px;
+}
+
+/* Debit and Credit are the same measurement and are read against each
+   other, so they get the same width. (The source sheet left Credit almost
+   three times wider than Debit — an artefact of it being the last column
+   in Excel, not a decision.) */
+col.s-date{width:9.5%}  col.s-mark{width:3.5%}  col.s-part{width:45%}
+col.s-vch{width:11%}    col.s-dr{width:15.5%}   col.s-cr{width:15.5%}
+
+table.st-tbl td.d{text-align:right;white-space:nowrap;}
+table.st-tbl td.m{text-align:center;}
+table.st-tbl td.p{font-weight:700;}
+table.st-tbl td.v{font-weight:700;font-size:8pt;}
+
+/* Narration sits on its own row under the figures, italic and indented,
+   the way the source sheet writes it. */
+table.st-tbl tr.st-n td.nar{
+  font-style:italic;font-size:8pt;font-weight:400;
+  padding-left:10px;
+}
+
+/* Money never wraps and is never clipped: one line, always in full. */
+table.st-tbl td.n{white-space:nowrap;overflow:visible;padding:2px 6px;}
+.st-paper .amt-wrap{
+  display:flex;flex-wrap:nowrap;justify-content:space-between;
+  align-items:baseline;gap:5px;
+}
+
+/* ---------- totals + closing balance ---------- */
+table.st-tbl tr.st-tot td{font-weight:700;border-top:1px solid var(--rule);}
+table.st-tbl tr.st-bal td{font-weight:700;}
+table.st-tbl tr.st-bal td.p{font-weight:700;}
+
+/* ---------- print ---------- */
+/* One .st-sheet per printed page, each carrying its own letterhead, party
+   block and column headings — a continuation sheet has to read as the same
+   statement, not as a torn-off list of figures. */
+.st-paper .sheet + .sheet{margin-top:12mm;}
+
+@page{size:A4 portrait;margin:10mm 12mm;}
+@media print{
+  html,body{margin:0;padding:0;background:#fff;}
+  .st-paper{width:180mm;margin:0 auto;}
+  .st-paper .sheet{page-break-inside:avoid;break-inside:avoid;}
+  .st-paper .sheet + .sheet{margin-top:0;page-break-before:always;break-before:page;}
+}
