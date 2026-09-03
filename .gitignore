@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+out/
+*.log
+.DS_Store
+Thumbs.db
+
+# Never commit real letterhead, stamps or generated documents
+assets/real/
+*.pdf
+*.xlsx
+*.xls

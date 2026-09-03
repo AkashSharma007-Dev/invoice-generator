@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invoice format preview</title>
+<link rel="stylesheet" href="src/invoice.css">
+<style>
+  body{margin:0;padding:24px 0;background:#7a7a7a;}
+  #host{background:#fff;width:277mm;margin:0 auto;padding:10mm 0;box-shadow:0 6px 28px rgba(0,0,0,.45);}
+  @media print{
+    body{background:#fff;padding:0;}
+    #host{width:auto;padding:0;box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+<div id="host"></div>
+<script src="src/defaults.js"></script>
+<script src="src/invoice-render.js"></script>
+<script>
+  var D = window.INVOICE_DEFAULTS;
+  var sample = {
+    invoiceNo: '26LUN/INV000156',
+    invoiceDate: '20-08-2026',
+    clientName: 'ACME GENERAL INSURANCE',
+    clientAddress: '',
+    lpoNumber: '',
+    currency: 'ZMW',
+    items: [
+      { pax: 'TRAVELLER/ALPHA MR', pnr: 'AAA111', route: 'HRE LUN',
+        service: 'AIR TICKET', ticket: '000-0000000001', amount: 8750 }
+    ],
+    company: D.company, bank: D.bank,
+    disclaimer: D.disclaimer, footerNote: D.footerNote, showStamp: true
+  };
+  document.getElementById('host').innerHTML =
+    window.InvoiceRender.buildInvoiceHTML(sample, '');
+</script>
+</body>
+</html>

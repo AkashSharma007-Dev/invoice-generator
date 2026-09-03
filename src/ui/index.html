@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Invoice Generator</title>
+<link rel="stylesheet" href="../invoice.css">
+<link rel="stylesheet" href="../statement.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ───────────────────────── top bar ───────────────────────── -->
+  <header class="topbar">
+    <div class="brand">
+      <img src="../../assets/logo.png" alt="">
+      <div class="brand-txt">
+        <strong>Invoice Generator</strong>
+        <span id="verTag">Example Travel &amp; Tours</span>
+      </div>
+      <span class="credit">Design and Developed by <b>Akash Sharma</b></span>
+    </div>
+
+    <!-- Which document is being worked on. Everything below - the form, the
+         preview, and what Save / Excel / Export PDF act on - follows this. -->
+    <div class="docmode" id="docMode">
+      <button class="dm on" data-mode="invoice">Invoice</button>
+      <button class="dm"    data-mode="statement">Statement</button>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn ghost" id="btnNew"      title="Start a blank invoice">New</button>
+      <button class="btn ghost" id="btnHistory"  title="Saved invoices">History</button>
+      <button class="btn ghost" id="btnClients"  title="Saved clients">Clients</button>
+      <button class="btn ghost" id="btnSettings" title="Letterhead, bank details, numbering">Settings</button>
+      <span class="divider"></span>
+      <button class="btn"         id="btnSave">Save</button>
+      <button class="btn"         id="btnXlsx">Excel</button>
+      <button class="btn primary" id="btnPdf">Export PDF</button>
+      <span class="upd" id="updBox" hidden><span id="updText"></span><button class="mini accent" id="updBtn" hidden>Restart</button></span>
+    </div>
+  </header>
+
+  <main class="body">
+
+    <!-- ───────────────────────── form ───────────────────────── -->
+    <section class="pane form-pane" id="formPane">
+
+      <div id="invoiceForm">
+      <div class="card">
+        <div class="card-head"><h2>Invoice details</h2></div>
+        <div class="grid">
+          <label class="field span2">
+            <span>Branch</span>
+            <select id="fBranch"></select>
+          </label>
+          <label class="field span3">
+            <span>Invoice number</span>
+            <div class="with-btn">
+              <input id="fInvoiceNo" type="text" spellcheck="false" autocomplete="off">
+              <button class="mini" id="btnAutoNo" title="Generate the next number for this branch">Auto</button>
+            </div>
+          </label>
+          <label class="field span2">
+            <span>Invoice date</span>
+            <input id="fDate" type="date">
+          </label>
+          <label class="field span3">
+            <span>Currency</span>
+            <select id="fCurrency"></select>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Client</h2></div>
+        <div class="grid">
+          <label class="field span5">
+            <span>Client name</span>
+            <input id="fClient" type="text" list="clientList" autocomplete="off"
+                   placeholder="Start typing — saved clients will suggest">
+            <datalist id="clientList"></datalist>
+          </label>
+          <label class="field span5">
+            <span>Address</span>
+            <input id="fClientAddress" type="text" autocomplete="off">
+          </label>
+          <label class="field span5">
+            <span>LPO number</span>
+            <input id="fLpo" type="text" autocomplete="off">
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Line items</h2>
+          <button class="mini" id="btnImport" title="Bulk-fill these rows from an Excel or CSV file">Import Excel</button>
+          <button class="mini accent" id="btnAddRow">+ Add row</button>
+        </div>
+        <div id="itemRows"></div>
+        <div class="totals">
+          <span>Net To Pay</span>
+          <strong id="fTotal">ZMW 0.00</strong>
+        </div>
+      </div>
+      </div><!-- /invoiceForm -->
+
+      <!-- statement (Ledger Account) -->
+      <div id="statementForm" hidden>
+
+        <div class="card">
+          <div class="card-head"><h2>Statement details</h2></div>
+          <div class="grid">
+            <label class="field span5">
+              <span>Client name</span>
+              <input id="tClient" type="text" list="clientList" autocomplete="off"
+                     placeholder="Start typing &mdash; saved clients will suggest">
+            </label>
+            <label class="field span2">
+              <span>Period from</span>
+              <input id="tFrom" type="date">
+            </label>
+            <label class="field span3">
+              <span>Period to</span>
+              <input id="tTo" type="date">
+            </label>
+            <label class="field span2">
+              <span>Currency</span>
+              <select id="tCurrency"></select>
+            </label>
+            <label class="field span3">
+              <span>Heading</span>
+              <input id="tTitle" type="text" placeholder="Ledger Account">
+            </label>
+            <label class="field span3">
+              <span>Opening balance <small>(blank if none)</small></span>
+              <input id="tOpening" type="number" step="0.01" class="num" placeholder="0.00">
+            </label>
+            <label class="field span2">
+              <span>Opening side</span>
+              <select id="tOpeningSide">
+                <option value="Dr">Dr &mdash; client owes</option>
+                <option value="Cr">Cr &mdash; we owe</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Ledger entries</h2>
+            <button class="mini" id="btnAutoFill" title="Build entries from the invoices already saved for this client">Auto fill</button>
+            <button class="mini" id="btnStmtImport" title="Bulk-fill these entries from an Excel or CSV file">Import Excel</button>
+            <button class="mini accent" id="btnAddEntry">+ Add row</button>
+          </div>
+          <div id="entryRows"></div>
+          <div class="totals st-sum">
+            <div><span>Debit</span><strong id="tDebit">0.00</strong></div>
+            <div><span>Credit</span><strong id="tCredit">0.00</strong></div>
+            <div class="bal"><span>Closing</span><strong id="tBalance">0.00</strong></div>
+          </div>
+        </div>
+
+      </div><!-- /statementForm -->
+
+    </section>
+
+    <!-- ───────────────────────── preview ───────────────────────── -->
+    <section class="pane preview-pane">
+      <div class="preview-bar">
+        <label class="switch">
+          <input type="checkbox" id="tglManual">
+          <span class="track"><span class="knob"></span></span>
+          <span class="switch-label">Manual edit</span>
+        </label>
+        <span class="hint" id="manualHint">Type directly on the invoice</span>
+        <div class="spacer"></div>
+        <button class="mini" id="btnWide" title="Hide the form and give the whole window to the preview">Wide view</button>
+        <div class="zoom">
+          <button class="mini" id="zoomOut" title="Zoom out">&minus;</button>
+          <button class="mini flat" id="zoomFit" title="Switch between whole page and full width"><span id="zoomVal">100%</span></button>
+          <button class="mini" id="zoomIn" title="Zoom in">+</button>
+        </div>
+      </div>
+      <div class="canvas" id="canvas">
+        <div class="stage" id="stage"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ───────────────────────── modals ───────────────────────── -->
+<div class="overlay" id="overlay" hidden>
+
+  <div class="modal" id="mHistory" hidden>
+    <header><h3>Saved invoices</h3><button class="x" data-close>&times;</button></header>
+    <div class="modal-body"><div class="list" id="historyList"></div></div>
+  </div>
+
+  <div class="modal" id="mClients" hidden>
+    <header><h3>Saved clients</h3><button class="x" data-close>&times;</button></header>
+    <div class="modal-body">
+      <div class="row-add">
+        <input id="cName" placeholder="Client name">
+        <input id="cAddr" placeholder="Address">
+        <button class="btn primary" id="btnAddClient">Add / update</button>
+      </div>
+      <div class="list" id="clientsList"></div>
+    </div>
+  </div>
+
+  <div class="modal wide" id="mImport" hidden>
+    <header><h3>Import passenger list</h3><button class="x" data-close>&times;</button></header>
+    <div class="modal-body">
+      <p class="note" id="impFile"></p>
+      <div class="grid">
+        <label class="field span2"><span>Sheet</span><select id="impSheet"></select></label>
+        <label class="field span3"><span>Header row</span><select id="impHeader"></select></label>
+      </div>
+      <h4>Which column is which?</h4>
+      <p class="note">App ne khud pehchana hai. Galat lage to yahi badal do — preview turant update hoga.</p>
+      <div class="grid" id="impMap"></div>
+      <h4>Preview</h4>
+      <p class="note" id="impCount"></p>
+      <div class="imp-prev"><table id="impTable"></table></div>
+    </div>
+    <footer class="modal-foot">
+      <label class="check" style="margin-right:auto"><input type="checkbox" id="impReplace"><span>Replace the rows already in this invoice</span></label>
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn primary" id="btnDoImport">Import</button>
+    </footer>
+  </div>
+
+  <div class="modal wide" id="mStmtImport" hidden>
+    <header><h3>Import ledger entries</h3><button class="x" data-close>&times;</button></header>
+    <div class="modal-body">
+      <p class="note" id="tImpFile"></p>
+      <div class="grid">
+        <label class="field span2"><span>Sheet</span><select id="tImpSheet"></select></label>
+        <label class="field span3"><span>Header row</span><select id="tImpHeader"></select></label>
+      </div>
+      <h4>Which column is which?</h4>
+      <p class="note">App ne khud pehchana hai. Galat lage to yahi badal do &mdash; preview turant update hoga.
+        Narration alag row me ho (jaise Tally ki statement me hoti hai) to app khud upar wali entry se jod deti hai.</p>
+      <div class="grid" id="tImpMap"></div>
+      <h4>Preview</h4>
+      <p class="note" id="tImpCount"></p>
+      <div class="imp-prev"><table id="tImpTable"></table></div>
+    </div>
+    <footer class="modal-foot">
+      <label class="check" style="margin-right:auto"><input type="checkbox" id="tImpReplace"><span>Replace the entries already in this statement</span></label>
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn primary" id="btnDoStmtImport">Import</button>
+    </footer>
+  </div>
+
+  <div class="modal wide" id="mAuto" hidden>
+    <header><h3>Auto fill from saved invoices</h3><button class="x" data-close>&times;</button></header>
+    <div class="modal-body">
+      <p class="note" id="autoNote"></p>
+      <div class="list" id="autoList"></div>
+    </div>
+    <footer class="modal-foot">
+      <label class="check" style="margin-right:auto"><input type="checkbox" id="autoReplace"><span>Replace the entries already in this statement</span></label>
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn primary" id="btnDoAuto">Add entries</button>
+    </footer>
+  </div>
+
+  <div class="modal wide" id="mSettings" hidden>
+    <header><h3>Settings</h3><button class="x" data-close>&times;</button></header>
+    <div class="modal-body">
+
+      <h4>Letterhead</h4>
+      <div class="grid">
+        <label class="field span5"><span>Company name</span><input id="sName"></label>
+        <label class="field span5"><span>Address</span><input id="sAddress"></label>
+        <label class="field span5"><span>Contact no.</span><input id="sContact"></label>
+        <label class="field span5"><span>Email</span><input id="sEmail"></label>
+        <label class="field span5"><span>Website</span><input id="sWebsite"></label>
+      </div>
+
+      <h4>Bank details</h4>
+      <div class="grid">
+        <label class="field span5"><span>Beneficiary name</span><input id="sBeneficiary"></label>
+        <label class="field span5"><span>Bank name</span><input id="sBankName"></label>
+        <label class="field span2"><span>Branch code</span><input id="sBranchCode"></label>
+        <label class="field span3"><span>Swift code</span><input id="sSwift"></label>
+        <label class="field span5"><span>Account number (ZMW)</span><input id="sAccZMW"></label>
+        <label class="field span5"><span>Account number (USD)</span><input id="sAccUSD"></label>
+      </div>
+
+      <h4>Footer</h4>
+      <div class="grid">
+        <label class="field span5"><span>Disclaimer</span><textarea id="sDisclaimer" rows="3"></textarea></label>
+        <label class="field span5"><span>Footer note</span><input id="sFooterNote"></label>
+        <label class="check span5"><input type="checkbox" id="sShowStamp"><span>Show company stamp on the invoice</span></label>
+        <label class="check span5"><input type="checkbox" id="sTotalsEveryPage"><span>Repeat Gross Amount / Net To Pay on every page<br>
+          <small>Off: they show only on the last page. Bank details, amount in words,
+          stamp, disclaimer and footer repeat on every page regardless.</small></span></label>
+      </div>
+
+      <h4>Statement</h4>
+      <div class="grid">
+        <label class="field span3"><span>Heading under the client name</span><input id="sStatementTitle" placeholder="Ledger Account"></label>
+        <label class="field span2"><span>Default Particulars</span><input id="sDefaultParticulars" placeholder="Journal"></label>
+        <label class="field span5">
+          <span>Voucher types &mdash; one per line</span>
+          <textarea id="sVchTypes" rows="4" spellcheck="false"></textarea>
+        </label>
+        <label class="check span5"><input type="checkbox" id="sStmtTotalsEveryPage"><span>Repeat Totals / Closing Balance on every page<br>
+          <small>Off: they show only on the last page. The letterhead, client name and
+          column headings repeat on every page regardless.</small></span></label>
+      </div>
+
+      <h4>Lists</h4>
+      <div class="grid">
+        <label class="field span5">
+          <span>Branches — one per line, as <code>CODE | Label</code></span>
+          <textarea id="sBranches" rows="3" spellcheck="false"></textarea>
+        </label>
+        <label class="field span5">
+          <span>Service types — one per line, as <code>NAME | field</code>.
+                Field can be <code>text</code> (ticket no.), <code>hotel</code>,
+                <code>country</code>, <code>package</code>,
+                <code>country_days</code>, <code>misc</code> or
+                <code>driver</code>. Leave it off for a plain ticket-no. box.</span>
+          <textarea id="sServices" rows="8" spellcheck="false"></textarea>
+        </label>
+      </div>
+
+      <h4>Numbering</h4>
+      <p class="note">Last serial issued per year + branch. The next invoice takes the number after this.</p>
+      <div class="list compact" id="counterList"></div>
+
+    </div>
+    <footer class="modal-foot">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn primary" id="btnSaveSettings">Save settings</button>
+    </footer>
+  </div>
+
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="../defaults.js"></script>
+<script src="../countries.js"></script>
+<script src="../currencies.js"></script>
+<script src="../invoice-render.js"></script>
+<script src="../statement-render.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
